@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>HarrisLi 美股追蹤表</title>
+<title>股票追蹤表</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -180,7 +180,7 @@ footer p{margin:4px 0;max-width:80ch}
 <header class="band">
   <div class="wrap">
     <div>
-      <h1><small id="srcname" hidden></small><span id="owner-title">美股追蹤表</span></h1>
+      <h1><small id="srcname" hidden></small><span id="owner-title">股票追蹤表</span></h1>
       <p class="meta"><span id="asof">尚未載入資料</span><span id="fxmeta"></span><span id="counts"></span></p>
     </div>
     <div class="actions">
@@ -196,7 +196,7 @@ footer p{margin:4px 0;max-width:80ch}
 
   <div class="welcome" id="welcome" hidden>
     <h2>先設定資料來源</h2>
-    <p class="muted" style="margin:0">這個頁面會讀取你的「美股追蹤表」Google 試算表，在瀏覽器裡計算成本、損益與報酬率。資料只存在你自己的瀏覽器。</p>
+    <p class="muted" style="margin:0">這個頁面會讀取你的「股票追蹤表」Google 試算表，在瀏覽器裡計算成本、損益與報酬率。資料只存在你自己的瀏覽器。</p>
     <ol>
       <li>按「設定資料來源」，選擇 Google 試算表網址、Apps Script 網頁應用程式，或上傳 .xlsx 檔。</li>
       <li>填好後按「儲存並載入」。</li>
@@ -584,7 +584,7 @@ const periodName=()=>ui.year==='all'?'全部期間':ui.year+' 年';
 
 /* ---------- 頁首與摘要 ---------- */
 function renderTitle(){
-  const name=String(CFG.owner||'').trim(), t=(name?name+' ':'')+'美股追蹤表';
+  const name=String(CFG.owner||'').trim(), t=(name?name+' ':'')+'股票追蹤表';
   $('owner-title').textContent=t; document.title=t;
   const src=DATA&&DATA.title?String(DATA.title):''; $('srcname').textContent=src; $('srcname').hidden=!src;
 }
@@ -1031,7 +1031,7 @@ function readForm(){
 $('s-form').addEventListener('submit',async e=>{
   e.preventDefault(); const f=readForm();
   if(f.source==='gviz'&&!sheetId(f.sheet)){$('s-msg').textContent='試算表網址看起來不正確，請貼上整段 docs.google.com/spreadsheets/d/… 網址。';return;}
-  if(f.source==='conn'&&f.sheet&&!sheetId(f.sheet)){$('s-msg').textContent='試算表網址看起來不正確，留空會使用預設的美股追蹤表。';return;}
+  if(f.source==='conn'&&f.sheet&&!sheetId(f.sheet)){$('s-msg').textContent='試算表網址看起來不正確，留空會使用預設的股票追蹤表。';return;}
   if(f.source==='gas'&&!/^https:\/\/script\.google(usercontent)?\.com\//.test(f.gasUrl)){$('s-msg').textContent='請貼上 script.google.com 開頭的網頁應用程式網址。';return;}
   const file=$('s-file').files&&$('s-file').files[0];
   if(f.source==='file'&&!file){$('s-msg').textContent='請先選擇 .xlsx 檔。';return;}
