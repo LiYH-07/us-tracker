@@ -51,7 +51,7 @@ function doGet(e) {
 
     return webappJson_({
       ok: true,
-      data: { asOf: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm'), fx: fx, tx: tx, px: px, dep: dep }
+      data: { title: ss.getName(), asOf: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm'), fx: fx, tx: tx, px: px, dep: dep }
     });
   } catch (err) {
     return webappJson_({ ok: false, error: String((err && err.message) || err) });

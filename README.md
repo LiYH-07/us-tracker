@@ -44,12 +44,18 @@
 
 試算表 **檔案 → 下載 → Microsoft Excel (.xlsx)**，在網站選這個檔案。資料只在瀏覽器裡解析。
 
+## 顯示名稱
+
+頁面標題預設是「美股追蹤表」。在 **資料來源 → 顯示名稱** 填入名字（例如 HarrisLi），標題就會變成「HarrisLi 美股追蹤表」，只套用在自己的瀏覽器。
+標題上方的小字會自動顯示試算表檔名（Apps Script 需使用最新版 `webapp.gs` 並部署新版本；上傳 .xlsx 時顯示檔名）。
+
 ## 改成預設值（選用）
 
 `index.html` 裡的 `SITE_CONFIG` 可以設定預設來源，例如：
 
 ```js
 const SITE_CONFIG = {
+  owner: '',             // 預設顯示名稱
   source: 'gas',
   sheet: '',
   gasUrl: 'https://script.google.com/macros/s/xxxx/exec',

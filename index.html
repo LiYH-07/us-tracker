@@ -180,7 +180,7 @@ footer p{margin:4px 0;max-width:80ch}
 <header class="band">
   <div class="wrap">
     <div>
-      <h1><small>美股追蹤表_harrisli</small>HarrisLi 美股追蹤表</h1>
+      <h1><small id="srcname" hidden></small><span id="owner-title">美股追蹤表</span></h1>
       <p class="meta"><span id="asof">尚未載入資料</span><span id="fxmeta"></span><span id="counts"></span></p>
     </div>
     <div class="actions">
@@ -343,6 +343,7 @@ footer p{margin:4px 0;max-width:80ch}
     <button class="btn" type="button" id="s-close">關閉</button>
   </div>
   <form class="dbody" id="s-form" novalidate>
+    <div class="field"><label for="s-owner">顯示名稱（頁面標題）</label><input type="text" id="s-owner" maxlength="30" placeholder="例如：HarrisLi" autocomplete="off"></div>
     <fieldset class="src">
       <legend>從哪裡讀取試算表</legend>
       <div class="opt" data-src="conn">
@@ -391,6 +392,7 @@ footer p{margin:4px 0;max-width:80ch}
  *  頁面上「資料來源」的設定會覆蓋這些值（只存在該瀏覽器）。
  * ============================================================ */
 const SITE_CONFIG = {
+  owner: '',     // 頁面標題顯示的名稱，每個人可在「資料來源」改成自己的
   source: 'gviz',   // 'gviz'（試算表網址）| 'gas'（Apps Script）| 'file'（上傳 xlsx）| 'conn'（Claude 連接器）
   sheet: '',     // Google 試算表網址或 ID
   gasUrl: '',                     // Apps Script 網頁應用程式網址
@@ -564,6 +566,11 @@ const inYear=d=>ui.year==='all'||String(d).slice(0,4)===ui.year;
 const periodName=()=>ui.year==='all'?'全部期間':ui.year+' 年';
 
 /* ---------- 頁首與摘要 ---------- */
+function renderTitle(){
+  const name=String(CFG.owner||'').trim(), t=(name?name+' ':'')+'美股追蹤表';
+  $('owner-title').textContent=t; document.title=t;
+  const src=DATA&&DATA.title?String(DATA.title):''; $('srcname').textContent=src; $('srcname').hidden=!src;
+}
 function renderHeader(){
   const tag={live:'已更新',saved:'上次載入',snapshot:'資料快照'}[SOURCE]||'資料';
   $('asof').textContent=tag+' '+DATA.asOf;
@@ -835,6 +842,7 @@ function showTab(t,push){
   ss.set(STORE_KEY+'-tab',t);
 }
 function renderAll(){
+  renderTitle();
   if(!DATA){ $('app').hidden=true; $('welcome').hidden=false; return; }
   R=compute(DATA); $('app').hidden=false; $('welcome').hidden=true;
   renderHeader(); renderKPIs(); renderPeriod(); renderCapital(); renderStocks();
@@ -942,15 +950,15 @@ async function loadGas(){
   if(!j||j.ok===false){ if(j&&j.error==='unauthorized') throw {code:'gas_auth'}; throw {code:'gas_fail',message:j&&j.error}; }
   const d=j.data||j; if(!d||!Array.isArray(d.tx)) throw {code:'gas_fail',message:'回傳格式不符，請使用最新版 webapp.gs。'};
   const out=fromRows(d.tx,Object.entries(d.px||{}).map(([k,v])=>[k].concat(v||[])),d.dep||[],d.fx);
-  if(d.asOf) out.asOf=d.asOf; return out;
+  if(d.asOf) out.asOf=d.asOf; if(d.title) out.title=String(d.title); return out;
 }
 async function loadConn(retried){
   if(!mcp) throw {code:'server_not_connected'};
   const id=sheetId(CFG.sheet)||FILE_ID_DEFAULT;
-  let b64;
+  let b64, p=null;
   try{
     const res=await mcp.callTool('Google Drive','download_file_content',{fileId:id,exportMimeType:XLSX_MIME},{cache:false});
-    let p=res&&res.payload; if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){}}
+    p=res&&res.payload; if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){}}
     b64=p&&typeof p==='object'?p.content:null;
     if(!b64) throw {code:'bad_shape',message:'Google Drive 回傳的內容不是試算表檔案，已保留目前的資料。'};
   }catch(e){
@@ -958,12 +966,12 @@ async function loadConn(retried){
     throw e;
   }
   await loadScript(XLSX_SRC);
-  return parseWorkbook(XLSX.read(b64,{type:'base64'}));
+  const out=parseWorkbook(XLSX.read(b64,{type:'base64'})); if(p&&p.title) out.title=String(p.title); return out;
 }
 async function loadFile(file){
   if(!file) throw {code:'no_file'};
   await loadScript(XLSX_SRC);
-  return parseWorkbook(XLSX.read(await file.arrayBuffer(),{type:'array'}));
+  const out=parseWorkbook(XLSX.read(await file.arrayBuffer(),{type:'array'})); out.title=String(file.name||'').replace(/\.xlsx$/i,''); return out;
 }
 async function load(file){
   if(busy) return false; busy=true; const b=$('reload'); b.disabled=true; b.textContent='載入中…';
@@ -992,14 +1000,14 @@ function openSetup(){
   document.querySelectorAll('input[name=src]').forEach(r=>{r.checked=r.value===src;});
   $('s-sheet').value=CFG.sheet||''; $('s-sheet-c').value=CFG.sheet||''; $('s-gas').value=CFG.gasUrl||''; $('s-key').value=CFG.gasKey||'';
   $('s-tx').value=CFG.sheets.tx; $('s-px').value=CFG.sheets.px; $('s-cap').value=CFG.sheets.cap; $('s-fx').value=CFG.fxCell;
-  $('s-auto').checked=!!CFG.auto; $('s-msg').textContent='';
+  $('s-owner').value=CFG.owner||''; $('s-auto').checked=!!CFG.auto; $('s-msg').textContent='';
   const dlg=$('setup'); if(!dlg.open){try{dlg.showModal()}catch(e){dlg.setAttribute('open','')}}
 }
 function readForm(){
   const src=(document.querySelector('input[name=src]:checked')||{}).value||'file';
   return {source:src,sheet:(src==='conn'?$('s-sheet-c'):$('s-sheet')).value.trim(),gasUrl:$('s-gas').value.trim(),gasKey:$('s-key').value,
     sheets:{tx:$('s-tx').value.trim()||'股票',px:$('s-px').value.trim()||'現價查詢',cap:$('s-cap').value.trim()||'本金'},
-    fxCell:($('s-fx').value.trim()||'I3').toUpperCase(),auto:$('s-auto').checked};
+    fxCell:($('s-fx').value.trim()||'I3').toUpperCase(),auto:$('s-auto').checked,owner:$('s-owner').value.trim()};
 }
 $('s-form').addEventListener('submit',async e=>{
   e.preventDefault(); const f=readForm();
@@ -1015,6 +1023,7 @@ $('s-form').addEventListener('submit',async e=>{
 });
 $('s-reset').addEventListener('click',()=>{CFG=defaults(); ls.del(STORE_KEY+'-cfg'); openSetup(); $('s-msg').textContent='已還原預設設定。';});
 $('s-close').addEventListener('click',()=>$('setup').close());
+$('s-owner').addEventListener('input',e=>{CFG.owner=e.target.value.trim(); const saved=ls.get(STORE_KEY+'-cfg')||{}; saved.owner=CFG.owner; ls.set(STORE_KEY+'-cfg',saved); renderTitle();});
 $('open-setup').addEventListener('click',openSetup);
 $('welcome-setup').addEventListener('click',openSetup);
 $('reload').addEventListener('click',()=>{ if(CFG.source==='file'||!availableSources().includes(CFG.source)) openSetup(); else load(); });
