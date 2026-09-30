@@ -213,7 +213,7 @@ footer p{margin:4px 0;max-width:80ch}
       <button class="tab" role="tab" id="tab-stocks" aria-controls="stocks" aria-selected="false" type="button">個股</button>
       <button class="tab" role="tab" id="tab-analysis" aria-controls="analysis" aria-selected="false" type="button">分析</button>
     </nav>
-    <div class="period"><span>期間</span><div class="seg" id="f-year" role="group" aria-label="期間"></div><span id="period-note"></span></div>
+    <div class="period"><span>期間</span><div class="seg" id="f-year" role="group" aria-label="期間"></div><span id="period-note"></span><button class="btn" type="button" id="repaint" style="margin-left:auto" title="圖表沒有正常顯示時使用">重繪圖表</button></div>
 
     <section id="capital" role="tabpanel" aria-labelledby="tab-capital">
       <h2>本金與匯率成本</h2>
@@ -553,11 +553,28 @@ function chartBase(){
   Chart.defaults.font.family=getComputedStyle(document.body).fontFamily; Chart.defaults.font.size=12;
   Chart.defaults.plugins.tooltip.backgroundColor=tok('--ink'); Chart.defaults.plugins.tooltip.titleColor=tok('--surface');
   Chart.defaults.plugins.tooltip.bodyColor=tok('--surface'); Chart.defaults.plugins.tooltip.padding=10;
-  Chart.defaults.animation=matchMedia('(prefers-reduced-motion: reduce)').matches?false:{duration:450};
   return true;
 }
-function kill(id){if(charts[id]){charts[id].destroy(); delete charts[id];}}
-function mk(id,cfg){ kill(id); if(!chartBase())return; const el=$(id); if(el) charts[id]=new Chart(el,cfg); }
+const REDUCE_MOTION=(()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}})();
+function kill(id){if(charts[id]){try{charts[id].destroy()}catch(e){} delete charts[id];}}
+/* 同一張圖只建立一次，之後原地更新資料與設定，避免反覆重建畫布造成空白 */
+function mk(id,cfg){
+  if(!chartBase()) return; const el=$(id); if(!el) return;
+  cfg.options=cfg.options||{}; cfg.options.animation=REDUCE_MOTION?false:{duration:400};
+  const c=charts[id];
+  if(c&&c.canvas===el&&c.config.type===cfg.type){
+    try{ c.data=cfg.data; c.options=cfg.options; c.update(); requestAnimationFrame(()=>{try{c.resize()}catch(e){}}); return; }
+    catch(e){ kill(id); }
+  } else kill(id);
+  charts[id]=new Chart(el,cfg);
+}
+function repaintCharts(){
+  Object.keys(charts).forEach(kill);
+  if(!R) return;
+  if(ui.tab==='capital') drawCapitalChart();
+  if(ui.tab==='analysis') renderAnalysis();
+  if(current){const st=R.stocks.find(x=>x.code===current); if(st) drawDetailChart(st);}
+}
 const ts=d=>Date.parse(d+'T00:00:00');
 const ymLabel=t=>{const d=new Date(t);return String(d.getFullYear()).slice(2)+'/'+pad(d.getMonth()+1)};
 const grid=()=>({color:alpha(tok('--line'),.7)});
@@ -837,6 +854,7 @@ const TABS=['capital','stocks','analysis'];
 function showTab(t,push){
   if(!TABS.includes(t)) t='capital'; ui.tab=t;
   TABS.forEach(k=>{$(k).hidden=k!==t; $('tab-'+k).setAttribute('aria-selected',String(k===t)); $('tab-'+k).tabIndex=k===t?0:-1;});
+  $('repaint').hidden=t==='stocks';
   if(R){ renderPeriod(); if(t==='capital') drawCapitalChart(); if(t==='analysis') renderAnalysis(); }
   if(push){try{history.replaceState(null,'','#'+t)}catch(e){}}
   ss.set(STORE_KEY+'-tab',t);
@@ -865,6 +883,7 @@ $('d-close').addEventListener('click',()=>$('detail').close());
 $('detail').addEventListener('click',e=>{if(e.target===$('detail'))$('detail').close();});
 $('detail').addEventListener('close',()=>{current=null;});
 $('fxw').addEventListener('input',renderWhatIf);
+$('repaint').addEventListener('click',repaintCharts);
 function syncPL(){const us=document.documentElement.getAttribute('data-pl')==='us'; $('plmode').textContent=us?'綠漲紅跌':'紅漲綠跌'; $('plmode').setAttribute('aria-pressed',String(us));}
 $('plmode').addEventListener('click',()=>{const r=document.documentElement; const us=r.getAttribute('data-pl')!=='us';
   if(us) r.setAttribute('data-pl','us'); else r.removeAttribute('data-pl'); ls.set(STORE_KEY+'-prefs',{pl:us?'us':'tw'}); syncPL(); renderAll(); showTab(ui.tab,false);});
