@@ -9,6 +9,7 @@
 |---|---|
 | `index.html` | 網站本體（含所有樣式與程式） |
 | `webapp.gs` | 選用。貼到試算表的 Apps Script，讓試算表保持私人也能讀取 |
+| `manifest.webmanifest`、`sw.js`、`*.png` | 手機 App 設定、離線快取與圖示 |
 | `.nojekyll` | 讓 GitHub Pages 直接提供檔案 |
 
 ## 部署到 GitHub Pages
@@ -19,6 +20,17 @@
 4. 約一分鐘後，網站會出現在 `https://<你的帳號>.github.io/<repository 名稱>/`。
 
 不想放上 GitHub 的話，直接用瀏覽器開啟 `index.html` 也可以使用。
+
+## 安裝成手機 App
+
+網站已包含 App 設定（`manifest.webmanifest`、圖示、`sw.js`），加到主畫面後會以全螢幕開啟、沒有網址列，並使用專屬圖示。
+
+- **iPhone / iPad**：用 Safari 開啟網址 → 分享 → 加入主畫面
+- **Android**：用 Chrome 開啟網址 → ⋮ → 安裝應用程式（或加到主畫面）
+
+從主畫面圖示開啟後，要在「資料來源」重新設定一次（App 與瀏覽器的設定分開儲存）。
+沒有網路時也能開啟，會顯示上次載入的資料；有網路時會自動讀取最新資料與最新版網站。
+更新 `sw.js` 時請把檔案開頭的 `VERSION` 加一（例如 `v1` → `v2`），舊快取才會清除。
 
 ## 設定資料來源
 

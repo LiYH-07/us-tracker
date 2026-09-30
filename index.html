@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>股票追蹤表</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#ECEEE8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#202428" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="股票追蹤表">
+<meta name="format-detection" content="telephone=no">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -30,6 +40,14 @@
 :root[data-pl="us"]{--gain:var(--green); --loss:var(--red)}
 
 *{box-sizing:border-box}
+/* App 模式：避開瀏海與底部橫條、關閉下拉回彈與點擊灰框 */
+html{-webkit-text-size-adjust:100%}
+body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+.band{padding-top:env(safe-area-inset-top,0px)}
+.wrap{padding-left:max(clamp(16px,4vw,32px),env(safe-area-inset-left,0px));padding-right:max(clamp(16px,4vw,32px),env(safe-area-inset-right,0px))}
+footer{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg)}
+@media (display-mode: standalone){ .band .wrap{padding-block:20px 18px} }
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;margin:0}
 button,input,select{font:inherit;color:inherit}
@@ -1060,6 +1078,10 @@ usePromise.then(m=>{
   const ready=(CFG.source==='gviz'&&sheetId(CFG.sheet))||(CFG.source==='gas'&&/^https:\/\//.test(CFG.gasUrl||''));
   if(BUILD!=='artifact'&&CFG.auto&&ready) load();
 }).catch(()=>{});
+/* ---------- App：離線快取 ---------- */
+if('serviceWorker' in navigator && window.isSecureContext && BUILD!=='artifact'){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
 })();
 </script>
 
