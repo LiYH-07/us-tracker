@@ -196,7 +196,7 @@ input[type=date]{font-size:14px;padding:0 14px}
 <script>
 // 部署 Code.gs 後，把網頁應用程式網址（/exec）貼在這裡；留空則顯示範例資料
 const API = 'https://script.google.com/macros/s/AKfycbzdq0r0XfLDNftiGHso6d7LvjAtzEjH09mJnB9urXqB7nbjv6Wcpw23bALiSfMPgWUwKA/exec';
-const REFRESH_MS = 30000; // ⏱️ 自動刷新間隔 (預設 60000 毫秒 = 60 秒，可自行調小如 30000)
+const REFRESH_MS = 40000; // ⏱️ 自動刷新間隔 (預設 60000 毫秒 = 60 秒，可自行調小如 30000)
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 /* 1. 於 load 函式加入 isSilent 參數：背景刷新時不顯示「載入中…」，避免畫面閃爍 */
