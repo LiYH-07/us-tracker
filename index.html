@@ -196,76 +196,10 @@ input[type=date]{font-size:14px;padding:0 14px}
 <script>
 // 部署 Code.gs 後，把網頁應用程式網址（/exec）貼在這裡；留空則顯示範例資料
 const API = 'https://script.google.com/macros/s/AKfycbzdq0r0XfLDNftiGHso6d7LvjAtzEjH09mJnB9urXqB7nbjv6Wcpw23bALiSfMPgWUwKA/exec';
-const REFRESH_MS = 30000; // 自動輪詢時間 (預設 60000ms = 60 秒)
+const REFRESH_MS = 30000; // ⏱️ 自動刷新間隔 (預設 60000 毫秒 = 60 秒，可自行調小如 30000)
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let items = [], quotes = {}, view = 'list', errors = [];
-
-/* 🔒 密碼金鑰管理 */
-let appPass = localStorage.getItem('app_pass') || '';
-function getPass() {
-  if (!appPass) {
-    appPass = prompt('請輸入系統存取密碼：') || '';
-    if (appPass) localStorage.setItem('app_pass', appPass);
-  }
-  return appPass;
-}
-$('#pass-btn').onclick = () => {
-  const p = prompt('請輸入新的存取密碼：', appPass);
-  if (p !== null) {
-    appPass = p;
-    localStorage.setItem('app_pass', p);
-    load();
-  }
-};
-
-/* 漲跌顏色：redUp 紅漲綠跌 / greenUp 綠漲紅跌，記在瀏覽器 */
-function bubble(R, F) {
-  const lg = (id, c) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset="1" stop-color="${c[1]}"/></linearGradient>`;
-  const cd = (x, t, b, g) => `<line x1="${x}" y1="${t - 6}" x2="${x}" y2="${b + 6}" stroke="url(#${g})" stroke-width="1.8" stroke-linecap="round"/><rect x="${x - 3.5}" y="${t}" width="7" height="${b - t}" rx="2.5" fill="url(#${g})" stroke="rgba(255,255,255,.55)" stroke-width=".6"/>`;
-  return `<svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><defs>${lg('bu', R)}${lg('bd', F)}
-    <radialGradient id="bs" cx=".34" cy=".28" r=".85"><stop offset="0" stop-color="#fff" stop-opacity=".62"/><stop offset=".5" stop-color="#8a7f78" stop-opacity=".1"/><stop offset=".85" stop-color="#4a4244" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity=".5"/></radialGradient>
-    <filter id="bgl" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-    <circle cx="50" cy="50" r="47" fill="url(#bs)"/>
-    <circle cx="50" cy="50" r="47" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="1.6"/>
-    <circle cx="50" cy="50" r="49.3" fill="none" stroke="rgba(255,255,255,.38)" stroke-width=".8"/>
-    <g filter="url(#bgl)">${cd(24, 55, 69, 'bu')}${cd(34, 45, 59, 'bu')}${cd(44, 32, 48, 'bu')}${cd(56, 39, 53, 'bd')}${cd(66, 49, 63, 'bd')}${cd(76, 57, 71, 'bd')}
-    <path d="M17 42L31 30M23 30H31V38" fill="none" stroke="${R[1]}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M64 27L78 38M70 38H78V30" fill="none" stroke="${F[1]}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g>
-    <path d="M19 33A33 33 0 0 1 38 17" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="2.4" stroke-linecap="round"/>
-    <path d="M80 68A33 33 0 0 1 64 82" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"/>
-    <circle cx="30" cy="70" r="1.3" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width=".7"/><circle cx="72" cy="22" r="1" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width=".7"/></svg>`;
-}
-function setTrend(t) {
-  document.documentElement.dataset.trend = t;
-  const RED = ['#ff9a9a', '#e32b2b'], GRN = ['#9bffb8', '#14b84a'], red = t === 'redUp';
-  $('#trend').innerHTML = bubble(red ? RED : GRN, red ? GRN : RED);
-  $('#trend').title = $('#trend').ariaLabel = (red ? '目前：紅漲綠跌' : '目前：綠漲紅跌') + '，點擊切換';
-  try { localStorage.setItem('trend', t); } catch (e) {}
-}
-let saved = 'redUp'; try { saved = localStorage.getItem('trend') || 'redUp'; } catch (e) {}
-setTrend(saved);
-$('#trend').onclick = () => setTrend(document.documentElement.dataset.trend === 'redUp' ? 'greenUp' : 'redUp');
-
-const DEMO = [
-  {time:'2026-10-09 09:06:51',market:'台股',code:'6223',name:'旺矽',price:5595,signal:'抄底'},
-  {time:'2026-10-08 12:48:35',market:'台股',code:'2365',name:'昆盈',price:27.35,signal:'深抄'},
-  {time:'2026-10-09 00:00:59',market:'美股',code:'COIN',name:'',price:173.81,signal:'買入'},
-  {time:'2026-10-09 00:01:48',market:'美股',code:'UUUU',name:'',price:9.89,signal:'減1'}
-];
-const hm = t => t.slice(11, 16);
-const SIG_HUE = {'買入':8,'深買':28,'深抄':46,'抄底':90,'回買':150,'加1':190,'減1':222,'高檔風險':280};
-const sigHue = s => {
-  if (s in SIG_HUE) return SIG_HUE[s];
-  let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  h %= 360;
-  for (let k = 0; k < 16 && Object.values(SIG_HUE).some(v => Math.min(Math.abs(v - h), 360 - Math.abs(v - h)) < 16); k++) h = (h + 23) % 360;
-  return h;
-};
-const sigTag = s => s ? `<span class="sig" style="--h:${sigHue(s)}">${esc(s)}</span>` : '';
-const dates = () => { const a = $('#d1').value, b = $('#d2').value; return {lo: a, hi: b || a}; };
-
-/* 載入與自動刷新資料 (isSilent: 背景無感更新，避免 UI 閃爍) */
+/* 1. 於 load 函式加入 isSilent 參數：背景刷新時不顯示「載入中…」，避免畫面閃爍 */
 async function load(isSilent = false) {
   if (!isSilent) $('#meta').textContent = '載入中…';
   const {lo, hi} = dates();
@@ -380,10 +314,10 @@ $('#mk').onchange = () => { render(); loadQuotes(); };
 $('#q').oninput = render;
 $('#q').onchange = loadQuotes;
 
-/* ⏱️ 設定定時自動輪詢 (每秒/每分鐘背景重新向 GAS 請求訊號與最新股價) */
+/* 2. 將原本的 setInterval(loadQuotes, REFRESH_MS); 改為下面這行： */
 setInterval(() => load(true), REFRESH_MS);
 
-/* 重新整理：手動重新載入訊號與股價 */
+/* 重新整理：點擊按鈕手動強制更新 */
 $('#refresh').onclick = async () => {
   const b = $('#refresh'); if (b.disabled) return;
   b.disabled = true; b.classList.add('spin'); quotes = {};
