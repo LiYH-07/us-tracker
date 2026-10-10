@@ -2,12 +2,13 @@
   "name": "快訊雷達",
   "short_name": "快訊雷達",
   "lang": "zh-Hant",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#d9deec",
   "theme_color": "#d9deec",
-  "icons": [
+  "icons": [s
     {
       "src": "icon-192.png",
       "sizes": "192x192",
@@ -21,7 +22,7 @@
       "purpose": "any"
     },
     {
-      "src": "icon-512.png",
+      "src": "icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
